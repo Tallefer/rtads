@@ -1441,21 +1441,13 @@ replaceStr: function(str, pattern, replacement)
            temp+= substr(replacement, a+a1, length(replacement));
            replacement:=temp;
          }
-         else result+=replacement;
-         
-         // формируем текст с учетом последней замены
-         if (res[1]>1) result+=substr(str, 1, res[1]-1);
-         result +=replacement;
-         // if (length(str)>res[1]+res[2]) result +=substr(str, res[1]+res[2],length(str));
       }
       
-      // скобок не было
-      if (found=[]) 
-      {
-         if (res[1]>1) result+=substr(str, 1, res[1]-1);
-         result +=replacement;
-         // if (length(str)>res[1]+res[2]-1) result +=substr(str, res[1]+res[2],length(str));
-      }
+      // формируем текст с учетом замены
+      if (res[1]>1) result+=substr(str, 1, res[1]-1);
+      result +=replacement;
+      // if (length(str)>res[1]+res[2]-1) result +=substr(str, res[1]+res[2],length(str));
+      
       
       // проверяем, нет ли других попаданий в оставшейся части слова
       if (length(str)>res[1]+res[2]-1) 
@@ -3655,7 +3647,7 @@ class dialItem: fixeditem
 ;
 
 /*
- *  switchItem: fixeditem
+ *  switchItem: item
  *
  *  This is a class for things that can be turned on and off by the
  *  player.  The only special property is isActive, which is nil

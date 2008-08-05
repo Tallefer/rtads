@@ -7,9 +7,21 @@
 */
 
 #define GENERATOR_INCLUDED
-#define _ON	 isHim = true
-#define _ONA isHer = true
-#define _ONI isThey = true
+#define _ON	isHim = true
+#define _ONA	isHer = true
+#define _ONI	isThey = true
+
+#define EDINS	1
+#define MNOZH	2
+#define MUZHR	4
+#define ZHENR	8
+#define SREDR	12
+#define SUSHE	16
+#define PRILA	32
+#define ODUSH	64
+#define UDARE	128
+
+
 
 // ВНЕДРЕНИЕ ГЕНЕРАТОРА В КОД
 // после проверки автором, вывод нужно отключить
@@ -17,6 +29,7 @@ generation: function
 { 
    // включение флага использования HTML
    "\H+";
+   
    // вывод только в режиме отладки
 #ifdef __DEBUG
    // вывод кода генерации. Закомментировать после проверки
@@ -24,6 +37,7 @@ generation: function
    // вывод использованных правил
    // generator.detailed:=true;
 #endif
+   
    generator.start;
 }
 
@@ -122,6 +136,8 @@ drules = []
 
 
 // винительный
+// мужской одушелвенный автоматически приравнивается родительному,
+// и поэтому тут не прописывается
 vrules =
 [
   ['2FI' 'йки'  'ек']
@@ -135,9 +151,7 @@ vrules =
   ['2I'   'ги'   'гов']
   ['2UI' 'ьи' 'ьёв']
   ['1MI' 'ь' 'я']
-  ['I'	'(8)ец' '$1йца']	
-  ['I'	'(8)лец' '$1льца']
-  ['I'	'(8[бвгджзйкмнпрстфхцчшщ])ец' '$1ца']
+  ['I'	'ий' 'его']
 ]
 
 
@@ -247,9 +261,9 @@ commonrules5 =
 [['F'	'ь'   'и'   'и'   'ь'   'ью'   'и']
 // -ень,-оть щебень, стержень, ломоть, лапоть, коготь; всего более 30-ти
 // но!!! -олень, тюлень, окунь, пельмень, бюллетень, ясень, ячмень (это почти все)
-['M'    'ень'   'ня'   'ню'   'ень'   'нем'   'не']
-['M'    'оть'   'тя'   'тю'   'оть'   'тем'   'те']
-['M'    'огонь'   'огня'   'огню'   'огонь'   'огнём'   'огне']  
+['M'	'ень'   'ня'   'ню'   'ень'   'нем'   'не']
+['M'	'оть'   'тя'   'тю'   'оть'   'тем'   'те']
+['M'	'огонь'   'огня'   'огню'   'огонь'   'огнём'   'огне']	
 [''	'ь'   'я'   'ю'   'ь'   'ем'   'е']
 
 // на -и
@@ -268,7 +282,7 @@ commonrules5 =
 ['2'	'ы'   'ов'   'ам'   'ы'   'ами'   'ах']
 [''	'ы'   'ы'   'ы'   ''   'ы'   'ы'   'ы']
 ]
-// 14
+// 17
 
 commonrules6 =
 // -к
@@ -587,12 +601,18 @@ start(...) =
      "\nСлов: <<gencnt>>\nГенерация заняла: <<gettime(GETTIME_TICKS)-ftime>> млс.\n";
 }
 
+binarize(str) =
+{
+  
+}
+
 // ФУНКЦИЯ ПРОВЕРКИ СООТВЕСТВИЯ ПРАВИЛ  ЗАДАННЫМ КЛЮЧАМ И СВОЙСТВАМ ОБЪЕКТА
 check(obj, rules, info) =
 {
     local  gender=nil,empty_info;
     
     //TODO: определять одушевленность по классу объекта
+    
     
     // проверка наличия критических условий проверки
     if (reSearch('^[^mfnia12мжсупд]*[уaп]*$',info)) empty_info:=true;
@@ -763,6 +783,22 @@ generate: function(obj, str, sklonenie, ...)
        local ind_rules_applied=nil; 
        
        // ИНДИВИДУАЛЬНЫЕ ПРАВИЛА СКЛОНЕНИЙ
+       // если одушевленный муж. род ед. числа, то просто приравниваем родительному
+       if (sklonenie=4 && found_rule)
+       {
+         if (generator.check(obj, '1IM', info)<>true) 
+         {     
+          local temp_result:= replaceStr( str, generator.commonrules[found_rule][2]+'$', generator.commonrules[found_rule][3]);
+
+          if (return_info) 
+            result += [[temp_result info [2 found_rule]]];
+          else result +=  temp_result;   
+          
+          ind_rules_applied:=true;         
+         }
+       }
+       
+       //остальные случаи особенных склонений
        if (sklonenie>1)
        // входим в цикл по списку индивидуальных правил
        for (i:=1; i<=length(generator.rules[sklonenie]) && ind_rules_applied=nil; i++)	
