@@ -2266,7 +2266,10 @@ class nestedroom: room
     }
     statusRoot =
     {
+        if (self.location.islit)
         "<<self.location.sdesc>>, <<self.statusPrep>> <<self.mdesc>>";
+        else
+         "В темноте, <<self.statusPrep>> <<self.mdesc>>";
     }
     lookAround(verbosity) =
     {
@@ -3660,7 +3663,7 @@ class dialItem: fixeditem
  *  accepts the commands "turn it on" and "turn it off," as well as
  *  synonymous constructions, and updates isActive accordingly.
  */
-class switchItem: fixeditem
+class switchItem: item
     verDoSwitch(actor) = {}
     doSwitch(actor) =
     {
@@ -3993,7 +3996,10 @@ class room: fixeditem
 
     statusRoot =
     {
+        if (self.islit) 
         self.sdesc;
+        else
+         "В темноте";        
     }
     lookAround(verbosity) =
     {
@@ -4089,6 +4095,7 @@ class darkroom: room        // An enterable area which might be dark
         else
             pass roomAction;
     }
+    /*
     statusRoot =
     {
         if (self.islit)
@@ -4096,6 +4103,7 @@ class darkroom: room        // An enterable area which might be dark
         else
             "Темно. ";
     }
+    */
     lookAround(verbosity) =
     {
         if (self.islit)
