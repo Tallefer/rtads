@@ -2516,6 +2516,8 @@ class thing: object
      "<<ZAG(self,&itnomdesc)>> похож<<ok(self,'и','','е','а')>> на обычн";ok(self,'ые','ый','ое','ую'); " <<self.vdesc>>. ";
     }
     readdesc = { "<<parserGetMe().fmtYou>> не <<glok(parserGetMe(),1,1,'мож')>> прочитать "; self.vdesc; ". "; }
+    takedesc = { "Взят"; yao(self); ". \n"; }
+				dropdesc = { "Брошен"; yao(self); ". \n"; }
     /*
      *  gender - определяет пол как результат рассмотрения всех флагов.
      *  Хотя Вы можете задать константу, но Вы ДОЛЖНЫ указывать флаги isHer и isHim,
@@ -2531,7 +2533,7 @@ class thing: object
     }
     actorAction(v, d, p, i) =
     {
-        "<<ZAG(self,&tdesc)>> особо не покамандуешь. ";
+        "<<ZAG(self,&tdesc)>> особо не покомандуешь. ";
         exit;
     }
     contentsVisible = { return true; }
@@ -2771,8 +2773,8 @@ class thing: object
             "<<ZAG(parserGetMe(),&sdesc)>> уже не <<glok(actor,1,1,'мож')>> удержать столько предметов. ";
         else
         {
+            self.takedesc;
             self.moveInto(actor);
-            "Взят"; yao(self); ". \n";
         }
     }
     verDoDrop(actor) =
@@ -3827,7 +3829,7 @@ class room: fixeditem
      */
     roomDrop(obj) =
     {
-        "Брошен"; yao(obj); ". ";
+        obj.dropdesc;
         obj.moveInto(self);
     }
 
