@@ -24,7 +24,7 @@ replace incscore: function( amount )
 	if (global.notified) notify(global,&tellscore,1);
 }
 
-notifyVerb:deepverb
+notifyVerb:darkVerb
 	sdesc="уведомление"
 	action(actor)=
 	{
@@ -43,10 +43,10 @@ notifyVerb:deepverb
 ;
 
 modify global 
-	tellscore={"\b***Вы получили <<self.addthis>> очк";
+	tellscore={"\b*** Вы получили <<self.addthis>> очк";
                 switch (self.addthis)
                 { case 1: "о"; break; case 2: {}; case 3: {}; case 4: "а"; break;  default: "ов";}
-                  " .***\n";}
+                  " ***\n";}
 ;
 
 /*	ISINSIDE - Search an object's entire contents hierarchy
