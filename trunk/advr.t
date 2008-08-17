@@ -740,6 +740,7 @@ glsok: function;
 ZA: function;
 additionalPreparsing: function;
 replaceStr: function;
+contentsListable: function;
 
 /*
  *  inputline: функция
@@ -1409,6 +1410,7 @@ sayPrefixCount: function(cnt)
 */
 additionalPreparsing: function(str)
 {
+return nil;
 }
 
 
@@ -1487,12 +1489,17 @@ replaceStr: function(str, pattern, replacement)
  *  check the visibility of the top-level object before listing its contents.
  *  LCG_RECURSE indicates that we should recursively list the contents of the
  *  objects we list; we'll use the same flags on recursive calls, and use one
- *  higher indent level.  To specify multiple flags, combine them with the
- *  bitwise-or (|) operator.
+ *  higher indent level.  LCG_CHECKLIST specifies that we should check
+ *  the listability of any recursive contents before listing them, using
+ *  the standard contentsListable() test.  To specify multiple flags, combine
+ *  them with the bitwise-or (|) operator.
+
  */
 #define LCG_TALL       1
 #define LCG_CHECKVIS   2
 #define LCG_RECURSE    4
+#define LCG_CHECKLIST  8
+
 listcontgen: function(obj, flags, indent)
 {
     local i, count, tot, list, cur, disptot, prefix_count;
@@ -1677,11 +1684,17 @@ listcontgen: function(obj, flags, indent)
             ++count;
 
             /* 
-             *   if this is a "tall" listing, and there's at least one
-             *   item contained inside the current item, list the item's
-             *   contents recursively, indented one level deeper 
+             *   If this is a "tall" listing, and there's at least one item
+             *   contained inside the current item, list the item's
+             *   contents recursively, indented one level deeper.
+             *   
+             *   If the 'check visibility' flag is set, then only proceed
+             *   with the sublisting if the contents are listable.  
              */
-            if ((flags & LCG_RECURSE) != 0 && itemcnt(cur.contents) != 0)
+            if ((flags & LCG_RECURSE) != 0
+                && itemcnt(cur.contents) != 0
+                && ((flags & LCG_CHECKLIST) = 0 || contentsListable(cur)))
+
             {
                 /* 
                  *   if this is a "wide" listing, show the contents in
@@ -1743,7 +1756,31 @@ nestlistcont: function(obj, depth)
      *   use the general-purpose contents lister to show a "tall" listing,
      *   recursing into contents of the items in the list 
      */
-    listcontgen(obj, LCG_TALL | LCG_RECURSE | LCG_CHECKVIS, depth);
+    listcontgen(obj, LCG_TALL | LCG_RECURSE | LCG_CHECKLIST, depth);
+}
+
+/*
+ *   contentsListable: are the contents of the given object listable in an
+ *   inventory or description list?  Returns true if the object's contents
+ *   are visible and it's not a "quiet" container/surface.  
+ */
+contentsListable: function(obj)
+{
+    /* check to see if it's a surface or container */
+    if (obj.issurface)
+    {
+        /* surface - list the contents unless it's a "quiet" surface */
+        return (not obj.isqsurface);
+    }
+    else
+    {
+        /* 
+         *   container - list the contents if the container makes its
+         *   contents visible and it's not a "quiet" container 
+         */
+        return (obj.contentsVisible and not obj.isqcontainer);
+    }
+
 }
 
 /*
@@ -1753,23 +1790,30 @@ nestlistcont: function(obj, depth)
  */
 showcontcont: function(obj)
 {
-    if (itemcnt(obj.contents))
+    /* show obj's direct contents, if it has any and they're listable */
+    if (itemcnt(obj.contents) != 0 && contentsListable(obj))
     {
         if (obj.issurface)
         {
-            if (not obj.isqsurface)
-            {
-                "На <<obj.mdesc>> <<parserGetMe().sdesc>> <<glok(parserGetMe(),2,1,'вид')>> "; listcont(obj);". ";
-            }
+            "Sitting on "; obj.thedesc;" is "; listcont(obj);
+            ". ";
         }
-        else if (obj.contentsVisible and not obj.isqcontainer)
+        else
         {
-            ZAG(obj,&sdesc); if (obj.isThem) " содержат "; else " содержит ";
+            caps();
+            obj.thedesc; " seem";
+            if (!obj.isThem) "s";
+            " to contain ";
             listcont(obj);
             ". ";
         }
     }
-    if (obj.contentsVisible and not obj.isqcontainer)
+
+    /* 
+     *   show the contents of the fixed contents if obj's contents are
+     *   themselves listable 
+     */
+    if (contentsListable(obj))
         listfixedcontcont(obj);
 }
 
@@ -2516,8 +2560,6 @@ class thing: object
      "<<ZAG(self,&itnomdesc)>> похож<<ok(self,'и','','е','а')>> на обычн";ok(self,'ые','ый','ое','ую'); " <<self.vdesc>>. ";
     }
     readdesc = { "<<parserGetMe().fmtYou>> не <<glok(parserGetMe(),1,1,'мож')>> прочитать "; self.vdesc; ". "; }
-    takedesc = { "Взят"; yao(self); ". \n"; }
-				dropdesc = { "Брошен"; yao(self); ". \n"; }
     /*
      *  gender - определяет пол как результат рассмотрения всех флагов.
      *  Хотя Вы можете задать константу, но Вы ДОЛЖНЫ указывать флаги isHer и isHim,
@@ -2773,8 +2815,8 @@ class thing: object
             "<<ZAG(parserGetMe(),&sdesc)>> уже не <<glok(actor,1,1,'мож')>> удержать столько предметов. ";
         else
         {
-            self.takedesc;
             self.moveInto(actor);
+            "Взят"; yao(self); ". \n";
         }
     }
     verDoDrop(actor) =
@@ -3018,7 +3060,7 @@ class thing: object
         }
         else
         {
-            "Хорошо, %You% больше не <<self.statusPrep>> <<self.mdesc>>. ";
+            "Хорошо, <<actor.sdesc>> больше не <<self.statusPrep>> <<self.mdesc>>. ";
             self.leaveRoom(actor);
             actor.moveInto(self.location);
         }
@@ -3166,10 +3208,6 @@ class thing: object
     {
         "Вы должны заключить то, что вы печатаете, в двойные кавычки, например, печатать \"ПРИВЕТ\" на клавиатуре. ";
     }
-    verDoTouch(actor) =
-    {
-        "Трогать "; self.vdesc; " бесполезно. ";
-    }
     verDoBreak(actor) = {}
     doBreak(actor) =
     {
@@ -3188,7 +3226,6 @@ class thing: object
     {
         "<<ZAG(parserGetMe(),&sdesc)>> не наш<<ella(actor)>> ничего интересного. ";
     }
-
     /* on dynamic construction, move into my contents list */
     construct =
     {
@@ -3200,13 +3237,29 @@ class thing: object
     {
         self.moveInto(nil);
     }
-
     /*
      *   Make it so that the player can give a command to an actor only
      *   if an actor is reachable in the normal manner.  This method
      *   returns true when 'self' can be given a command by the player. 
      */
     validActor = (self.isReachable(parserGetMe()))
+    
+    //   Три новых desc'а - smelldesc, listendesc, touchdesc
+    verDoListenTo(actor)={}
+    doListenTo(actor)=self.listendesc
+    verDoSmell(actor)={}
+    doSmell(actor)=self.smelldesc
+    verDoTouch(actor)={}
+    doTouch(actor)=self.touchdesc
+    smelldesc= {
+      "<<ZAG(self,&sdesc)>> <<glok(self, 1, 1,'пахн')>> вполне обычно. ";
+    } 
+    listendesc={"<<parserGetMe().fmtYou>> ничего не услышал<<iao(parserGetMe())>>. ";}   
+    touchdesc= {
+          "На ощупь он<<iao(self)>> похож<<iao(self)>> на обычн";
+          if (self.isactor && self.isThem) "ых"; else
+          ok(self, 'ые', 'ый', 'ое', 'ую');" "; self.vdesc; ". ";
+    }
 ;
 
 /*
@@ -3829,7 +3882,7 @@ class room: fixeditem
      */
     roomDrop(obj) =
     {
-        obj.dropdesc;
+        "Брошен"; yao(obj); ". ";
         obj.moveInto(self);
     }
 
@@ -4047,6 +4100,7 @@ class room: fixeditem
      *   in a direction in which travel is not possible.
      */
     noexit = { "Этим путем не пройти. "; return nil; }
+    listendesc = "Ничего особенного здесь не слышно. "
 ;
 
 /*
@@ -4405,6 +4459,11 @@ class movableActor: qcontainer // A character in the game
         self.location.dispParagraph;
         "<<ZAG(self,&sdesc)>> вош"; ella(self); " сюда. ";
     }
+    
+    listendesc="<<ZAG(self,&sdesc)>> ничего не <<glok(self,2,2,'говор')>>. "
+    verDoLookin(actor)={"А как заглянуть в <<self.vdesc>>? ";}
+    //verDoSearch(actor)={"Как грубо! ";}
+    ldesc="<<ZAG(self,&sdesc)>> <<glok(self,2,2,'выгляд')>> как и всяк<<oyay(self)>> <<self.sdesc>>. "
 
     // this should be used as an actor when ambiguous
     preferredActor = true
@@ -5316,6 +5375,11 @@ class openable: container
            "<<ZAG(self,&sdesc)>> закрыт<<yao(self)>>. ";
     }
     verDoSearch(actor) = { self.verDoLookin(actor); }
+    // verDoOpenWith ?
+    doOpenWith(actor,io)=
+    {
+     "Я не знаю как открыть <<self.vdesc>> с помощью <<io.rdesc>>.";
+    }
 ;
 
 /*
@@ -6180,6 +6244,8 @@ throwVerb: deepverb
     ioAction(atPrep) = 'ThrowAt'
     ioAction(inPrep) = 'ThrowAt'
     ioAction(toPrep) = 'ThrowTo'
+    ioAction(thruPrep) = 'ThrowThru'
+    ioAction(onPrep) = 'PutOn'
 ;
 standOnVerb: deepverb
     verb = 'стать на' 'стань на' 'встать на' 'встань на' 'залезть на' 'залезь на' 'взобраться на'
@@ -6336,6 +6402,23 @@ detachVerb: deepverb
     ioAction(fromPrep) = 'DetachFrom'
     doAction = 'Detach'
     sdesc = "отцепить"
+;
+
+smellVerb: darkVerb
+	verb='нюхать' 'нюхай' 'понюхать' 'понюхай' 'обнюхать' 'обнюхай'
+	sdesc="понюхать"
+	doAction='Smell'
+;
+
+listenVerb:darkVerb
+	verb='слушать' 'слушай' 'прислушаться' 'прислушайся' 'прислушаться к' 'прислушайся к' 'вслушаться в' 'вслушайся в'
+	sdesc="слушать"
+	action(actor)=
+        {  
+         if ((parserGetMe().location.location!=nil)) parserGetMe().location.location.listendesc;
+         else parserGetMe().location.listendesc;
+        }
+	doAction='ListenTo'
 ;
 
 sleepVerb: darkVerb
@@ -7334,6 +7417,8 @@ loweru: function(oldstr)
     local i,ret,ret1,tstr=oldstr,str='';
     local alph='абвгдеёжзийклмнопрстуфхчцшщъыьэюя';
     local ALPH='АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЧЦШЩЪЫЬЭЮЯ';
+    
+    if (oldstr=nil) return nil;
     ret := reSearch('[АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЧЦШЩЪЫЬЭЮЯ]',oldstr);
     if (ret=nil) return oldstr;
      while (ret!=nil) 
@@ -7401,14 +7486,16 @@ preparseExt: function(actor, verb, str, typ)
 {
     local comStr, ret; 
     comStr:=str;
-
+    
+    //убираем пробелы впереди
     comStr:=TrimLeft(comStr);
 
-     global.ready := nil;
+    global.ready := nil;
     
     // Если первый символ строки "*" или ">", то прекращаем обработку - это комментарий
     if (substr(comStr,1,1)='*' or substr(comStr,1,1)='>') return nil;
  
+    // приводим строку к упрощенному виду
      if (comStr!='') 
       {
         comStr:=loweru(comStr);
@@ -7416,9 +7503,11 @@ preparseExt: function(actor, verb, str, typ)
       }
 
      if (comStr='и') return 'инвентарь';
-
-     if (loweru(substr(comStr, 1, 3)) = 'ой ')
-         return 'oops ' + substr(comStr, 3, length(comStr) - 2);
+    
+     // исправление через "ой"
+     comStr:=replaceStr(comStr, '^ой ', 'oops ');
+         
+     // замена "себя" на объект
      ret := reSearch('себя',comStr);
      if (ret!=nil)
       {
@@ -7439,6 +7528,11 @@ preparseExt: function(actor, verb, str, typ)
        comStr:=comStr+' ';
        comStr:=comStr+substr(str,ret[1]+ret[2],length(str));
       }
+     
+     // вводим возможность вводить фразы типа "попросить Ваню взять пилу"
+     ret:='(попросить[ ]|просить[ ]|проси[ ]|попроси[ ]|приказать[ ]|прикажи[ ]|^сказать[ ]|^скажи[ ])[ ]*([^ ,.;]+) ';     
+     comStr:=replaceStr(comStr, ret, '$2'+', ');
+     
      // При уточнении выбрасываем предлоги.
      ret := reSearch('(^на[ ]|^в[ ]|^под[ ]|^из[ ]|^для[ ]|^от[ ]|^против[ ]|^типа[ ]|^с[ ])',comStr);
      if (ret!=nil) return substr(comStr, ret[1]+ret[2], length(comStr));
