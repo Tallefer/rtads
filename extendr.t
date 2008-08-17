@@ -1,19 +1,20 @@
-/*	EXTEND.T - An Extension Set for TADS
-*
-*	by Neil deMause (neild@echonyc.com), 3/26/96
-*
-*      Русская редакция Гранкина Андрея aka GrAnd с изменениями
-*                      Release 25
-* Нововведения:
-* Уведомление о очках, функция isinside, movefromto,
-* запрет использования "всё" для всех команд кроме
-* взять, бросить, положить (я перенёс часть функции 
-* в errorru.t). Ряд глаголов (слушать, прислушаться к,
-* нюхать, поднять, кинуть сквозь, опустошить), несколько
-* патчей. Классы: доступные только восприятию (запахи,
-* звуки, абстракции), unlisteditem (типа гриба или моха в
-* "Медведях", пока не взял, не видно)  
-*
+/*  EXTENDR.T - An Extension Set for TADS Russificated
+*   Адаптированная библиотека от Нейла деМуаса (Neil deMause)
+*   
+*   с 25 релиза сюда выносятся все небольшие расширения 
+*   библиотек, идиеологически не вписывающиеся в основные,
+*   требующие изучения автором и не покрытые руководством
+*   
+*   Исходный набор от Нейла:
+*   Уведомление о очках, функция isinside, movefromto;
+*   запрет использования "всё" для всех команд кроме
+*   взять, бросить, положить (я перенёс часть функции 
+*   в errorru.t). 
+*   Ряд глаголов (слушать, прислушаться к, нюхать,
+*   опустошить) - включены в advr.t. 
+*   Классы: доступный только восприятию (запахи, звуки, 
+*   абстракции), unlisteditem (не отображаемый под 
+*   описанием локации до того как его взял, предмет)  
 */
 
 replace incscore: function( amount )
@@ -21,59 +22,46 @@ replace incscore: function( amount )
 	global.score := global.score + amount;
 	scoreStatus( global.score, global.turnsofar );
 	global.addthis:=amount;
-	if (global.notified) notify(global,&tellscore,1);
+	if (global.incscorenotified) notify(global,&tellscore,1);
 }
 
-notifyVerb:darkVerb
+notifyVerb:deepverb
 	sdesc="уведомление"
 	action(actor)=
 	{
-	if (not global.notified) 
+	if (not global.incscorenotified) 
 		{
-		"Уведомление включено. ";
-		global.notified:=true;
+		"Уведомление об изменении счета включено. ";
+		global.incscorenotified:=true;
 		}
 	else 
 		{
-		"Уведомление выключено. ";
-		global.notified:=nil;
+		"Уведомление об изменении счета выключено. ";
+		global.incscorenotified:=nil;
 		}
 	}
 	verb='notify'
 ;
 
 modify global 
-	tellscore={"\b*** Вы получили <<self.addthis>> очк";
+	tellscore={"\b***Вы получили <<self.addthis>> очк";
                 switch (self.addthis)
                 { case 1: "о"; break; case 2: {}; case 3: {}; case 4: "а"; break;  default: "ов";}
-                  " ***\n";}
+                  " .***\n";}
 ;
 
 /*	ISINSIDE - Search an object's entire contents hierarchy
 *
-*	This function enables you to determine if one 
-*	object contains another, even if the contained object 
-*	is buried several levels deep. Actually, it works 
-*	from the bottom up -- cycling through the 
-*	contained item's location hierarchy until it either 
-*	hits the desired container, or nil, in which case it 
-*	stops.
+*	Функция определяет находиться ли объект в другом,
+*       даже если он вложен очень глубоко. Рекурсивно идет
+*       от указанного объекту к самому первому контейнеру.
 *
-*	Here's how to use it: Say you have a puzzle where 
-*	carrying a gun through an airport metal detector 
-*	will set off an alarm. Obviously, you want this to 
-*	occur even if the player is carrying the gun in their 
-*	bag, or their pocket, or even hidden inside a 
-*	hollowed-out book in a secret compartment in their 
-*	briefcase. To check on this, include the following 
-*	code:
-*
+*       Пример поверки:
 *	if (isinside(gun,Me)) alarm.ring;
 *
-*	isinside() returns true if the item is anywhere within 
-*	the location, nil otherwise.
+*	isinside() возвращает true если предмет где-либо внутри,  
+*	и nil в других случаях.
 */
-
 isinside: function(item,loc)
 {
 	if (item.location=loc) return(true);
@@ -81,26 +69,23 @@ isinside: function(item,loc)
 	else return(nil);
 }
 
-/*	MOVEFROMTO - Bulk relocation
-*
-*	Dan Shiovitz deserves all the credit for this one; I 
-*	was looking for a way to move the entire contents 
-*	of one object to another, and he came up with this 
-*	nifty code.
-*/
 
+/*	MOVEFROMTO - Массовое перемещение
+*
+*	Перебрасывает ряд вещей из объекта в объект
+*/
 moveFromTo: function (from, to)
 {
 	local l, i;
 	l := from.contents;
 	for (i := 1; i <= length(l); ++i)
 		{
-		if (!l[i].isfixed)    // Изменил ГрАнд релиз 24
+		if (!l[i].isfixed)
                   l[i].moveInto(to);  
 		}
 }
 
-/*	DISABLING "ALL"
+/*	Запрет на "ВСЕ"
 *
 *	Another one that isn't my doing, though I've 
 *	unfortunately forgotten who on rec.arts.int-fiction 
@@ -109,6 +94,7 @@ moveFromTo: function (from, to)
 *	"all" (which seems logical); adding "allowall=true" 
 *	to other verbs will let you use "all" with them as well.
 */
+/*
 modify deepverb
 doDefault (actor, prep, iobj) =
 {
@@ -125,11 +111,7 @@ doDefault (actor, prep, iobj) =
 }
 ;
 
-modify room
-listendesc = "Ничего особенного здесь не слышно. "
-;
 
-/*
 modify takeVerb
 allowall=true
 doDefault (actor, prep, iobj) = 
@@ -149,7 +131,6 @@ else pass doDefault;
 
 modify dropVerb
 	allowall=true
-	ioAction(onPrep)='PutOn'  //while we're at it...
 doDefault (actor, prep, iobj) = 
 { 
  if (self.allowall=nil) 
@@ -181,107 +162,18 @@ doDefault (actor, prep, iobj) =
 else pass doDefault; 
 } 
 ;
-*/
-/*	PLATFORMITEM - Neither chair nor bed...
-*
-*	I once beta-tested a game where if you sat on the 
-*	toilet then tried to leave, you got the response 
-*	"You're not going anywhere until you get out of 
-*	the toilet!" If that toilet had been a platformItem, 
-*	much embarrassment could have been avoided. 
-*	(See also doUnboard under "modify thing".)
-*/
+*/				
 
-class platformItem:chairitem
-	statusPrep='на'
-	noexit =
-	{
-	"<<ZAG(parserGetMe(),&fmtYou)>> никуда не <<glok(parserGetMe(),1,2,'пойд')>>,
-      пока не <<glok(parserGetMe(),1,1,'слез')>> c <<rdesc>>. ";
-	return( nil );
-	}
-;
-
-
-/*	VERBS! - I got a million of 'em...
-*
-*	These are some of the verbs I use the most often, 
-*	along with new ioActions for some verb-
-*	preposition pairs that ADV.T doesn't recognize, 
-*	and the prepositions "for" and "against", which 
-*	ADV.T inexplicably omits.
-*/
-
-modify throwVerb
-	ioAction(thruPrep) = 'ThrowThru'
-	ioAction(onPrep) = 'PutOn'
-;	
-
-smellVerb: darkVerb
-	verb='нюхать' 'нюхай' 'понюхать' 'понюхай' 'обнюхать' 'обнюхай'
-	sdesc="понюхать"
-	doAction='Smell'
-;
-
-modify class openable
-	doOpenWith(actor,io)=
-	{
-	"Я не знаю как открыть <<self.vdesc>> с помощью <<io.rdesc>>.";
-	}
-;
-
-modify inVerb
-	verb='прыгнуть в' 'прыгни в'
-;
-
-modify climbVerb
-	ioAction(thruPrep)='ClimbThru'
-;
-
-againstPrep:Prep
-	preposition='напротив'
-	sdesc="напротив"
-;
-
-forPrep:Prep
-	preposition='для'
-	sdesc="для"
-;
-
-modify askVerb          //Английский оборот... надо переделать под наш
-	ioAction(forPrep)='AskFor'
-;
-
-listenverb:darkVerb
-	verb='слушать' 'слушай' 'прислушаться' 'прислушайся'
-	sdesc="слушать"
-	action(actor)=
-        {  
-         if ((dToS(parserGetMe().location,&listendesc)='Ничего особенного здесь не слышно. ') and
-         (parserGetMe().location.location!=nil)) parserGetMe().location.location.listendesc;
-         else parserGetMe().location.listendesc;
-        }	//add a listendesc
-	doAction='ListenTo'
-;								
-
-listentoverb:deepverb
-	verb='прислушаться к' 'вслушаться в'
-	sdesc="прислушаться к"
-	doAction='ListenTo'
-;
-
-/*	"Empty" requires a modification for the container 
-*	class, using moveFromTo()
-*/
-
+//  "Опустошить" выкладывает все содержимое контейнера перемещением
 emptyVerb:deepverb
 	verb='опустошить' 'опорожнить' 'пролить' 'разлить' 'опрокинуть'
+	     'опустоши' 'опорожни' 'пролей' 'разлей' 'опрокинь'
 	sdesc="опорожнить"
 	doAction='Empty'
 ;
 
 modify container
-	verDoEmpty(actor)={if (self.isfixed) "<<ZAG(self,&vdesc)>> не удастся опрокинуть. ";}
+	verDoEmpty(actor)={if (self.isfixed) "<<ZAG(self,&vdesc)>> не удастся сдвинуть. ";}
 	doEmpty(actor)=
 	{
 	if (not self.isopen) "<<ZAG(self,&sdesc)>> закрыт<<yao(self)>>. ";
@@ -293,73 +185,26 @@ modify container
 	}
 ;
 
-/*Of course, now we need to code in default responses for many of these new verbs...*/
-
-modify thing
-	verDoSmell(actor)={}
-	doSmell(actor)={self.smelldesc;}
-	smelldesc= {
-   "<<ZAG(self,&sdesc)>> <<glok(self, 1, 1,'пахн')>> вполне обычно. ";
-   }
-
-/*Fixes a TADS bug that creates responses like "Okay, you're no longer in the toilet. "*/
-
-	doUnboard( actor ) =
-	{
-	if ( self.fastenitem )
-		{
-		"Сначала <<actor.ddesc>> придётся расстегнуть <<actor.location.fastenitem.vdesc>>. ";
-		}
-	else
-		{
-           	 "Хорошо, <<actor.fmtYou>> больше не <<self.statusPrep>> "; self.mdesc; ". ";
-            	self.leaveRoom( actor );
-		actor.moveInto( self.location );
-		}
-    	}
-	verDoTouch(actor)={}
-	doTouch(actor)=self.touchdesc
-	touchdesc= {
-          "На ощупь он<<iao(self)>> похож<<iao(self)>> на обычн";
-          if (self.isactor && self.isThem) "ых"; else
-           ok(self, 'ые', 'ый', 'ое', 'ую');" "; self.vdesc; ". ";
-        }
-	listendesc={"<<parserGetMe().fmtYou>> ничего не услышал<<iao(parserGetMe())>>. ";}
-	verDoListenTo(actor)={}
-	doListenTo(actor)={"<<self.listendesc>>";}
-	verDoFind(actor)={"Вам самим придётся искать это. ";}
-	verIoAskFor(actor)={}
-	ioAskFor(actor,dobj)=
-	{
-	  dobj.doAskFor(actor,self);       //redirects the action to the person you're asking
-	}					
-;
-
-/*	UNLISTEDITEM - Not fixed, but not listed
+/*	UNLISTEDITEM - Не фиксированы, но не видны в списке вещей
 *
-*	Often you (well, I) want to have an item that you 
-*	can take, but that is included in the room 
-*	description rather than listed separately. This item 
-*	is unlisted until you take it, after which it behaves 
-*	like a regular item. (But be sure to include code in 
-*	your ldesc removing it from the room description once it's 
-*	taken as well.)
+*    Вводит класс объектов, которые не высвечиваются в списке
+*    присутствующих в комнате, пока игрок их не подберёт.
+*    После этого они ведут себя ка любой другой. 
+*    Не забудьте изменить описание комнаты! 
+*
 */
-
 class unlisteditem:item
 	isListed=nil
 	doTake(actor)={self.isListed:=true; pass doTake;}
 ;
 
-/*	INTANGIBLE - For things like smells, sounds, etc., a special 
-*	class.
+/*	НЕОСЯЗАЕМЫЕ - Специальный класс для запахов, звуков и т.п.
 */
-
 class intangible:fixeditem
 	verDoTake(actor)={"Это невозможно взять. ";}
 	verDoTakeWith(actor,io)={"Это невозможно взять. ";}
 	verDoMove(actor)={"Это невозможно двигать. ";}
-	verDoTouch(actor)={"Это невозможно ощутить руками. ";}
+	touchdesc="Это невозможно ощутить руками. "
 	verDoTouchWith(actor,io)={"Это невозможно пощупать. ";}
 	ldesc="Это невидимо. "
 	verDoLookbehind(actor)="Это невидимо. "
@@ -368,21 +213,38 @@ class intangible:fixeditem
 	verIoPutOn(actor)={"На это нельзя положить что-либо. ";}
 ;
 
-/*	A whole bunch of modifications to the basic Actor class.
-*/
 
-modify Actor
+// Расшерение от Firton'а. 
+// Добавляет хвосты для измененения описаний действий "взять" и "бросить".
 
-/*This automatically translates "ask actor for object" as "actor, give object to me," which can avoid a lot of unnecessary coding.*/
+modify room
+    replace roomDrop(obj) =
+    {
+        obj.dropdesc;
+        obj.moveInto(self);
+    }
+;
 
-	verDoAskFor(actor,io)={}
-	doAskFor(actor,io)={self.actorAction(giveVerb,io,toPrep,Me);}
+modify thing
+    takedesc = { "Взят"; yao(self); ". \n"; }
+    dropdesc = { "Брошен"; yao(self); ". \n"; }
+    replace doTake(actor) =
+    {
+        local totbulk, totweight;
 
-/*Likewise, this translates "actor, tell me about item" as "ask actor about item."*/
+        totbulk := addbulk(actor.contents) + self.bulk;
+        totweight := addweight(actor.contents);
+        if (not actor.isCarrying(self))
+            totweight := totweight + self.weight + addweight(self.contents);
 
-	actorAction(v,d,p,i)={if (v=tellVerb and d=parserGetMe() and p=aboutPrep) {self.doAskAbout(i); exit;}}
-	listendesc="<<ZAG(self,&sdesc)>> ничего не <<glok(self,2,2,'говор')>>. "
-	ldesc="<<ZAG(self,&sdesc)>> выглядит как и всякий <<self.sdesc>>. "
-	verDoLookin(actor)={"А как заглянуть в <<self.vdesc>>? ";}
-	verDoSearch(actor)={"Как грубо! ";}
+        if (totweight > actor.maxweight)
+            "<<ZAG(actor,&fmtYour)>> груз слишком тяжёл. ";
+        else if (totbulk > actor.maxbulk)
+            "<<ZAG(parserGetMe(),&sdesc)>> уже не <<glok(actor,1,1,'мож')>> удержать столько предметов. ";
+        else
+        {
+            self.takedesc;
+            self.moveInto(actor);
+        }
+    }
 ;
