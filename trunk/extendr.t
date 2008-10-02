@@ -94,7 +94,7 @@ moveFromTo: function (from, to)
 *	"all" (which seems logical); adding "allowall=true" 
 *	to other verbs will let you use "all" with them as well.
 */
-/*
+
 modify deepverb
 doDefault (actor, prep, iobj) =
 {
@@ -161,8 +161,7 @@ doDefault (actor, prep, iobj) =
  } 
 else pass doDefault; 
 } 
-;
-*/				
+;				
 
 //  "Опустошить" выкладывает все содержимое контейнера перемещением
 emptyVerb:deepverb
@@ -248,3 +247,14 @@ modify thing
         }
     }
 ;
+
+/* Модифицируем класс локации так, чтобы её название выводилось жирным шрифтом.
+ * Будет дейстовать для всех комнат в игре. Только если включен HTML  
+ * by GrAnd
+*/
+#ifdef USE_HTML_STATUS
+modify room
+dispBeginSdesc = "<b>"
+dispEndSdesc = "</b>"
+;
+#endif
