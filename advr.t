@@ -1,16 +1,16 @@
-/* Copyright (c) 1988-2000 by Michael J. Roberts.  All Rights Reserved. */
+/* Copyright (c) 1988-2008 by Michael J. Roberts.  All Rights Reserved. */
 /* Copyright (c) modifed 2002 - 2008 by Andrey P. Grankin
    All Rights Reserved by license.
 
    				RusRelease 25
 
-   Copyright (c) 1989-2000  Майкл Дж. Робертс. Все права оговорены.
+   Copyright (c) 1989-2008  Майкл Дж. Робертс. Все права оговорены.
    Copyright (c) изменения 2002 - 2008 годов произведены Андреем П. Гранкиным.
    Перевод комментариев и лицензии произведен Стасом Старковым в 2003 году.
    Все права оговорены лицензией.
 
   advr.t -- русская модификация стандартных приключенческих определений
-  Версия 2.5.7
+  Версия 2.5.11
 
   Этот файл является частью TADS: Системы Разработки Текстовых
   Приключенческих Игр. Информацию по использованию этого файла вы можете
@@ -27,7 +27,7 @@
    каждого файла игры специальной командой "#include".
 
   advr.t - russian mod of standard default adventure definitions
-  Version 2.5.7
+  Version 2.5.11
   
   This file is part of TADS:  The Text Adventure Development System.
   Please see the file LICENSE.TAD (which should be part of the TADS
@@ -1795,15 +1795,12 @@ showcontcont: function(obj)
     {
         if (obj.issurface)
         {
-            "Sitting on "; obj.thedesc;" is "; listcont(obj);
+            "На "; obj.mdesc;" <<parserGetMe().sdesc>> вид<<glok(parserGetMe(),2,2)>> "; listcont(obj);
             ". ";
         }
         else
         {
-            caps();
-            obj.thedesc; " seem";
-            if (!obj.isThem) "s";
-            " to contain ";
+            ZAG(obj,&sdesc); if (obj.isThem) " содержат "; else " содержит ";
             listcont(obj);
             ". ";
         }
@@ -7349,7 +7346,7 @@ parseNounPhrase: function(wordlist, typelist, current_index, complain_on_no_matc
  if (current_index>1)
   {
    local i:=current_index;
-   // ### В следующей строчке переписал последнее условие - !(lasttype & PRSTYP_NOUN) - в более явном виде 
+
    while (i<=length(wordlist) and (((typelist[i] & PRSTYP_ADJ) != 0) or (((typelist[i] & PRSTYP_NOUN) != 0) and (lasttype & PRSTYP_NOUN)=0)))
 
    {
@@ -7375,11 +7372,7 @@ parseNounPhrase: function(wordlist, typelist, current_index, complain_on_no_matc
         local t;
         t:=parserDictLookup([(wordlist[i-1])], [PRSTYP_ADJ]);
         t+=parserDictLookup([(wordlist[i-1])], [PRSTYP_NOUN]);
-        // ###Поменял с if (t!=[]) return [i]+t; Дело в том, что при полном разборе словосочетания parseNounPhrase должна в возвращаемом списке
-        // на первом месте поставить число, соответствующее порядковому номеру последнего слова разобранного словосочетания, увеличенному на 1.
-        // При повторном вызове parseNounPhrase начинает разбор следующего словосочетания именно с этого элемента (т. е. следующего за разобранным
-        // словосочетанием), а если список лексем исчерпан, то система "понимает", что все уже разобрано
-        if (t!=[]) return [(i+1)]+t;
+	if (t!=[]) return [(i+1)]+t;
      }
 
      if  ((typelist[i]&PRSTYP_NOUN) && (typelist[i]&PRSTYP_ADJ) && (lasttype&PRSTYP_NOUN))
@@ -7387,8 +7380,7 @@ parseNounPhrase: function(wordlist, typelist, current_index, complain_on_no_matc
         local t;
         t:=parserDictLookup([(wordlist[i])], [PRSTYP_ADJ]);
         t+=parserDictLookup([(wordlist[i])], [PRSTYP_NOUN]);
-        // ### См. предыдущее примечание
-        //
+
         if (t!=[]) return [(i+1)]+t;
      }
 
@@ -7397,7 +7389,7 @@ parseNounPhrase: function(wordlist, typelist, current_index, complain_on_no_matc
     lasttype:=typelist[i];
     i++;
    }
-   // ### И здесь тоже увеличиваем на 1 первый элемент возвращаемого списка
+
    if (objs!=[] and wasadjafn) return [(i+1)]+objs;
   }
 
@@ -7472,9 +7464,38 @@ preparse: function(comStr)
      }
 
     if (comStr='и') return 'инвентарь';
+    
+             
+    // замена "себя" на объект
+    ret := reSearch('себя',comStr);
+    if (ret!=nil)
+     {
+      // Узнаем имя персонажа и его лексемы без флагов
+      local actor_sdesc:=dToS(parserGetObj(PO_ACTOR),&sdesc);
+      local nouns:= getwords(parserGetObj(PO_ACTOR),&noun);
+      local i;
+      local oldstr:=comStr;
+      for (i:=1; i<=length(nouns);i++) 
+        if (reSearch('#',nouns[i])<>nil) {nouns-=nouns[i]; i--;}
 
-     ret := additionalPreparsing(comStr);
-     if (ret) comStr:=ret;
+      comStr:=substr(oldstr,1,ret[1]-1)+' ';	
+
+      // Стараемся использовать имя персонажа для уточнения о ком речь,
+      // но если таких лексем нет - берем первое его попавшееся существительное
+      if (find(nouns, actor_sdesc)<>nil)  comStr:=comStr+actor_sdesc; 
+      else comStr:=comStr+nouns[1];
+
+      comStr:=comStr+' ';
+      comStr:=comStr+substr(oldstr,ret[1]+ret[2],length(oldstr));
+     }
+    
+    // вводим возможность вводить фразы типа "попросить Ваню взять пилу"
+    // TODO: доработать для случая прил+сущ+прил: попросить князя тьмы почесать спинку
+    ret:='(попросить|просить|проси|попроси|приказать|прикажи|^сказать|^скажи)[ ]+([^ ,.;]+) ';     
+    if (ret<>nil) comStr:=replaceStr(comStr, ret, '$2'+', ');
+
+    ret := additionalPreparsing(comStr);
+    if (ret) comStr:=ret;
 
     return comStr;
 }
@@ -7506,32 +7527,7 @@ preparseExt: function(actor, verb, str, typ)
     
      // исправление через "ой"
      comStr:=replaceStr(comStr, '^ой ', 'oops ');
-         
-     // замена "себя" на объект
-     ret := reSearch('себя',comStr);
-     if (ret!=nil)
-      {
-       // Узнаем имя персонажа и его лексемы без флагов
-       local actor_sdesc:=dToS(parserGetObj(PO_ACTOR),&sdesc);
-       local nouns:= getwords(parserGetObj(PO_ACTOR),&noun);
-       local i;
-       for (i:=1; i<=length(nouns);i++) 
-         if (reSearch('#',nouns[i])<>nil) {nouns-=nouns[i]; i--;}
 
-       comStr:=substr(str,1,ret[1]-1)+' ';	
-
-       // Стараемся использовать имя персонажа для уточнения о ком речь,
-       // но если таких лексем нет - берем первое его попавшееся существительное
-       if (find(nouns, actor_sdesc)<>nil)  comStr:=comStr+actor_sdesc; 
-       else comStr:=comStr+nouns[1];
-
-       comStr:=comStr+' ';
-       comStr:=comStr+substr(str,ret[1]+ret[2],length(str));
-      }
-     
-     // вводим возможность вводить фразы типа "попросить Ваню взять пилу"
-     ret:='(попросить[ ]|просить[ ]|проси[ ]|попроси[ ]|приказать[ ]|прикажи[ ]|^сказать[ ]|^скажи[ ])[ ]*([^ ,.;]+) ';     
-     comStr:=replaceStr(comStr, ret, '$2'+', ');
      
      // При уточнении выбрасываем предлоги.
      ret := reSearch('(^на[ ]|^в[ ]|^под[ ]|^из[ ]|^для[ ]|^от[ ]|^против[ ]|^типа[ ]|^с[ ])',comStr);

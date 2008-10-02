@@ -1,16 +1,16 @@
-/* Copyright (c) 1989-2000 by Michael J. Roberts.  All Rights Reserved. */
+/* Copyright (c) 1989-2008 by Michael J. Roberts.  All Rights Reserved. */
 /* Copyright (c) modifed 2002-2008 by Andrey P. Grankin.
    All Rights Reserved by license.
 
   				RusRelease 25
 
-   Copyright (c) 1989-2000  Майкл Дж. Робертс. Все права оговорены.
+   Copyright (c) 1989-2008  Майкл Дж. Робертс. Все права оговорены.
    Copyright (c) изменения 2002, 2008 годов произведены Андреем П. Гранкиным.
    Перевод комментариев и лицензии произведен Стасом Старковым (2003 год).
    Все права оговорены лицензией.
 
   stdr.t -- русская модификация стандартных приключенческих определений
-  Версия 2.5.6
+  Версия 2.5.11
 
   Этот файл является частью TADS: Системой Разработки Текстовых
   Приключенческих Игр. Информацию по использованию этого файла вы можете
@@ -38,7 +38,7 @@
 
 
   stdr.t   - russian mod of standard default adventure definitions
-  Version 2.5.6
+  Version 2.5.11
   
   This file is part of TADS:  The Text Adventure Development System.
   Please see the file LICENSE.TAD (which should be part of the TADS
