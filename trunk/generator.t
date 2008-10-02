@@ -1,7 +1,6 @@
 /* 
 *   Ѕ»ЅЋ»ќ“≈ ј √≈Ќ≈–ј“ќ–ј ѕјƒ≈∆≈…
 *   требует функции 25 релиза библиотек TADS   
-*   последн€€ модификаци€ 27.07.08
 *   основна€ часть -GrAnd, 
 *   отдельные моменты - Flint, Fireton
 */
@@ -56,7 +55,7 @@ generation: function
 
 /*
 testobj: item
-gdesc='странный/1мп предмет/1м из иного/п- мира/п-'
+desc='странный/1мп предмет/1м из иного/п- мира/п-'
 adjective = 'плоский/1м'  'акульи/2'
 noun='воблы/й' 'крюки/м2' 'рука/1ж' 'вилы/2' 'щепочка/1ж' 'быстра€/п1ж' 'блоха/ж' 'муравь»/2ом'
 isHer=true
@@ -205,7 +204,7 @@ prules = []
 // ≈сли при добавлении правил будет по€вл€тьс€ ошибка, разбейте на меньшие фрагменты
 
 // вид: требовани€ к грам. свойствам слова, шаблон, 5 схем замены дл€ склонений, кроме
-// инменительного
+// инменительного + комментарий (опционально)
 
 commonrules1 =
 // ћножественное число существительных на -а:
@@ -406,7 +405,7 @@ start(...) =
  ѕеред \"/\" -  учтенные свойства объекта. (-) - повтор. (#d)(#t) - добавлены лексемы с метками падежей. \b
  ≈сли окончание формируетс€ неправильно, обратите внимание на пол, число и ударение, особенно, 
  если после вывода есть предупреждение. ѕри простановке ударени€ учтите, что оно может 
- перемещатьс€ при склонении. ¬ таких случа€х обозначайте ударение меткой \"д\".\b";
+ перемещатьс€ при склонении (огур≈ц-огурцј). ¬ таких случа€х обозначайте ударение меткой \"д\" или заглавной последней согласной (огуре÷).\b";
     
     obj := firstobj();
     while (obj <> nil)
@@ -415,8 +414,8 @@ start(...) =
       local i=nil, nouns, adjs;
       local nl,al;
       
-      // — ЋќЌя≈ћ  ќ–ќ“ »≈ ќѕ»—јЌ»я (GDESC)
-      sdescstr:=obj.gdesc;
+      // — ЋќЌя≈ћ  ќ–ќ“ »≈ ќѕ»—јЌ»я (DESC)
+      sdescstr:=obj.desc;
       
       if (sdescstr<>nil) i:=find(sdescstr,'/');
       
@@ -436,7 +435,7 @@ start(...) =
          for (i:=1; i<=length(sdesc_list); i++)
          {
              local j, temp;
-             if (ret:=reSearch('.+/(.+)',sdesc_list[i]), ret<>nil)
+             if (ret:=reSearch('.+/(.*)',sdesc_list[i]), ret<>nil)
              {
                  local flags:=reGetGroup(1)[3];
                  
@@ -794,9 +793,9 @@ generate: function(obj, str, sklonenie, ...)
   if (info<>nil &&  reSearch('n|у|a|п',info)=nil)
   {
     if (gr_type&PRILA) info+='п'; 
-    else info+='у'; 
-   }
-    
+  }
+  else info+='у'; 
+   
     // TODO: ?
     if (str=nil || str='') return;
    
@@ -804,7 +803,12 @@ generate: function(obj, str, sklonenie, ...)
   // указано прописной буквой
     // (строчные)(прописана€ гласна€)(только строчные гласные). -ј€
     if (reSearch('^[^ј-я®]*[ј≈®»ќ”џЁёя][аеЄиоуыэю€]*$',str)) 
-      info+='u';      
+      info+='u';
+    else 
+    // выделена согласна€ -последн€€ буква в слове, что обозначает
+    // ударение, переход€щее с основы на окончание при склонении
+    if (reSearch('^[^ј≈®»ќ”џЁёя]+[Ѕ¬√ƒ∆«… ЋћЌѕ–—“‘’„÷Ўў]$',str)) 
+      info+='u';            
     else 
     // единственна€ гласна€ в окончании. -дно, ржа
     if (reSearch('^[^аеЄиоуыэю€]+[аеЄиоуыэю€]$',str)) 
@@ -944,12 +948,12 @@ addwordru: function(obj, type, word)
 {
 	if ( find(word, '/') )
 	{
-		local flag, sklon, res;
+		local gtflag, sklon, res;
 		
-		if (type = &adjective) flag := 2;
-		else if (type = &noun) flag := 1;
+		if (type = &adjective) gtflag := PRILA;
+		else gtflag := SUSHE;
 		
-		res := generate(obj, word, 0, flag, true);
+		res := generate(obj, word, 0,  gtflag | RETDET);
           
 		for (sklon := 1; res <> nil && sklon <= length(res); ++sklon)
 		{
@@ -968,12 +972,12 @@ delwordru: function(obj, type, word)
 {
 	if ( find(word, '/') )
 	{
-		local flag, sklon, res;
+		local gtflag, sklon, res;
 		
-		if (type = &adjective) flag := 2;
-		else if (type = &noun) flag := 1;
+		if (type = &adjective) gtflag := PRILA;
+		else gtflag := SUSHE;
 		
-		res := generate(obj, word, 0, flag, true);
+		res := generate(obj, word, 0, gtflag | RETDET);
           
 		for (sklon := 1; res <> nil && sklon <= length(res); ++sklon)
 		{
