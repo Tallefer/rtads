@@ -670,7 +670,7 @@ specialWords
     'затем' ='после'= 'потом' = 'then',        /*  союз для отделения команд */
                                                            /* одну от другой */
                                          /* conjunction to separate commands */
-    'все'='всех'='all' = 'everything',         /* ссылается на все доступные */
+    'все'='всех'='всем'='всей'='all' = 'everything',         /* ссылается на все доступные */
                                                                   /* объекты */
                                         /* refers to every accessible object */
     'оба'='обе'='обоих'='both',             /* используется с множественными */
@@ -2389,19 +2389,6 @@ class chairitem: fixeditem, nestedroom, surface
                             //  from a chair, but this makes special allowances
     ischair = true          // it is a chair by default; for beds or other
                             //  things you lie down on, make it false
-
-    /*
-     *   For compatibility with past versions of adv.t, we do not allow
-     *   the player to reach objects that are inside objects that are in
-     *   the reachable list.  This behavior probably doesn't make a lot of
-     *   sense in most cases, and isn't consistent with other types of
-     *   nested rooms, so many games will probably want to modify
-     *   chairItem and set canReachContents = true.  However, since it
-     *   worked this way in the past, the default is still nil, so that
-     *   any games that (intentionally or otherwise) depended on this
-     *   behavior will continue to work the same way they used to.  
-     */
-    canReachContents = nil
 
     outOfPrep = "с"
     statusPrep = "на"
@@ -4367,7 +4354,7 @@ class movableActor: qcontainer // A character in the game
         }
         
         // didn't find anything to talk about
-        self.disavow;
+        self.disavow(lst);
     }
     disavow = "\"Не могу сказать об этом ничего конкретного.\" "
     verIoThrowAt(actor)={}
@@ -6990,6 +6977,13 @@ HelpVerb: sysverb
     }
 ;
 
+// Формальная регистрация глагола для корректной работы обработчика,
+// подменяющего глагол на конструкцию "актер, сделай это"
+askforVerb: deepverb
+    sdesc = "попросить"
+    verb = 'просить' 'проси' 'попросить' 'попроси' 'приказать' 'прикажи'
+;
+
 /*
  *  Prep: object
  *
@@ -7491,7 +7485,7 @@ preparse: function(comStr)
     
     // вводим возможность вводить фразы типа "попросить Ваню взять пилу"
     // TODO: доработать для случая прил+сущ+прил: попросить князя тьмы почесать спинку
-    ret:='(попросить|просить|проси|попроси|приказать|прикажи|^сказать|^скажи)[ ]+([^ ,.;]+) ';     
+    ret:='(попросить|^просить|^проси|попроси|приказать|прикажи|^сказать|^скажи)[ ]+([^ ,.;]+) ';     
     if (ret<>nil) comStr:=replaceStr(comStr, ret, '$2'+', ');
 
     ret := additionalPreparsing(comStr);
@@ -7547,4 +7541,34 @@ TrimLeft: function(str)
     ret := reSearch('(^ +)',str);
     if (ret!=nil) str:=substr(str,ret[2]+1,length(str) );
     return str;   
+}
+
+// пытается опознать предложный или винительный падеж  
+// указанного слова и возвращает либо "о(б)" - предложный, 
+// либо "про" - винительный
+// только существительные
+opro: function(word)
+{
+    local ret, ob=0;
+    
+    // признаки предложного падежа
+    ret := reSearch('(е|ах|ях)$',word);
+    
+    if (ret!=nil) 
+    {
+        ret := reSearch('^[аеёиоуэюя]',word); // первая буква - гласная
+        if (ret!=nil) return 'об'; else  
+        {
+            if (word='мне') return 'обо';
+            return 'о';
+        }
+    }
+    
+    // признаки винительного
+    ret := reSearch('(я|а|у)$',word);
+    if (ret!=nil) return 'про';
+    
+    // если окончание -и, например "молнии", - то будем считать, что число мн-ое
+    // для несклоняемых и прочего - "про"
+    return 'про';
 }
