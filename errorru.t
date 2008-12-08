@@ -124,7 +124,9 @@ parseAskobjActor: function(a, v, ...)
 {
     if (argcount = 3)
     {
+       if (getarg(3)=aboutPrep) "Î"; else
        if (getarg(3)!=toPrep or v.padezh_type !=2) ZAG(getarg(3),&sdesc);
+       
        if (getarg(3)=onPrep or getarg(3)=thruPrep or getarg(3)=inPrep or getarg(3)=atPrep) 
        {
          if (getarg(3)=inPrep) "î";
